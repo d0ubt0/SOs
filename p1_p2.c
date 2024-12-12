@@ -7,15 +7,16 @@
 #include <semaphore.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <sys/types.h>
 #include <time.h>
 
 #define SEM_1_NAME "/sem_1"
 #define SEM_2_NAME "/sem_2"
 #define SEM_3_NAME "/sem_3"
 #define SEM_4_NAME "/sem_4"
-#define SHM_NAME "/shm"
-#define FIFO_1 "/fifo_1"
-#define FIFO_2 "/fifo_2"
+#define SHM_NAME "/my_shared_memory"
+#define FIFO_1 "/tmp/mypipe1"
+#define FIFO_2 "/tmp/mypipe2"
 
 sem_t *sem_1; 
 sem_t *sem_2; 
@@ -136,27 +137,23 @@ int main(int argc, char *argv[]) {
     }
 
     if (pid == 0) {
-        close(fifo_1);
         generar_impares(n, a2, shm_ptr);
 
         int senal;
-        
         read(fifo_2, &senal, sizeof(senal));
         if (senal == -3) {
             printf("-3 P2 termina\n");
         }
+        
         close(fifo_2);
         unlink(FIFO_2);
         return 0;
 
     } else {
-        close(fifo_2);
         generar_pares(n, a1, shm_ptr);
 
         int senal;
-        read(fifo_1, &senal, sizeof(int));
-
-        printf("Señal P1 %d\n", senal);
+        read(fifo_1, &senal, sizeof(senal));
         if (senal == -3) {
             printf("-3 P1 termina\n");
         }

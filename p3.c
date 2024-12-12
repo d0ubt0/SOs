@@ -4,13 +4,14 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/types.h>
 #include <semaphore.h>
 
 #define SEM_3_NAME "/sem_3"
 #define SEM_4_NAME "/sem_4"
-#define SHM_NAME "/shm"
-#define FIFO_1 "/fifo_1"
-#define FIFO_2 "/fifo_2"
+#define SHM_NAME "/my_shared_memory"
+#define FIFO_1 "/tmp/mypipe1"
+#define FIFO_2 "/tmp/mypipe2"
 
 sem_t *sem_3;
 sem_t *sem_4;
@@ -34,26 +35,28 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    // Crear semáforos
+    //Eliminar semaforo 3 y 4
     sem_unlink(SEM_3_NAME);
+    sem_unlink(SEM_4_NAME);
+    
+    //Crear semaforo 3
     sem_3 = sem_open(SEM_3_NAME, O_CREAT, 0666, 1);
     if (sem_3 == SEM_FAILED) {
         perror("sem_open sem_3");
         exit(EXIT_FAILURE);
     }
-
-    sem_unlink(SEM_4_NAME);
+    //Crear semaforo 4
     sem_4 = sem_open(SEM_4_NAME, O_CREAT, 0666, 0);
     if (sem_4 == SEM_FAILED) {
         perror("sem_open sem_4");
         exit(EXIT_FAILURE);
     }
 
-    //Eliminando tuberías por si acaso
+    // Eliminando tuberías por si acaso
     unlink(FIFO_1);
     unlink(FIFO_2);
     
-    //Creando tuberias y verificando
+    // Creando tuberías y verificando
     if (mkfifo(FIFO_1, 0666) == -1) {
         perror("mkfifo FIFO_1");
         exit(EXIT_FAILURE);
@@ -63,14 +66,14 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    //Abriendo tuberias
-    int fifo_1 = open(FIFO_1, O_CREAT | O_WRONLY, 0666);
+    // Abriendo tuberías
+    int fifo_1 = open(FIFO_1,O_WRONLY);
     if (fifo_1 == -1) {
         perror("open FIFO_1");
         exit(EXIT_FAILURE);
     }
 
-    int fifo_2 = open(FIFO_2, O_CREAT | O_WRONLY, 0666);
+    int fifo_2 = open(FIFO_2, O_WRONLY);
     if (fifo_2 == -1) {
         perror("open FIFO_2");
         exit(EXIT_FAILURE);
