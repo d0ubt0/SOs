@@ -71,20 +71,24 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    // Verificar si P3 ya fue inicializado
+    // Verificar si P3 ya fue inicializado por el p3
     sem_3 = sem_open(SEM_3_NAME, 0);
     if (sem_3 == SEM_FAILED) {
         perror("Primero inicie P3");
         exit(1);
     }
     sem_4 = sem_open(SEM_4_NAME, 0);
+    if (sem_4 == SEM_FAILED) {
+        perror("Error al abrir semáforo SEM_4");
+        sem_close(sem_3);
+        exit(EXIT_FAILURE);
+    }
 
-    // Creando semáforos
+    // Eliminando y luego creando semáforos
     sem_unlink(SEM_1_NAME);
     sem_unlink(SEM_2_NAME);
 
     srand(time(NULL));
-
     int boolean = rand() % 2;
 
     if (boolean == 0) {
@@ -95,9 +99,34 @@ int main(int argc, char *argv[]) {
         sem_1 = sem_open(SEM_1_NAME, O_CREAT, 0666, 0);
     }
 
+    //Verificando semaforos creados
+    if (sem_1 == SEM_FAILED || sem_2 == SEM_FAILED) {
+        perror("Error al crear semáforos SEM_1 o SEM_2");
+        exit(EXIT_FAILURE);
+    }
+
     // Abriendo memoria compartida
-    int shm = shm_open(SHM_NAME, O_RDWR, 0666);
-    int *shm_ptr = mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED, shm, 0);
+    int shm_fd = shm_open(SHM_NAME, O_RDWR, 0666);
+    if (shm_fd < 0) {
+        perror("Error al abrir memoria compartida");
+        exit(EXIT_FAILURE);
+    }
+
+    //Mapeando puntero
+    int *shm_ptr = mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+    if (shm_ptr == MAP_FAILED) {
+        perror("Error al mapear memoria compartida");
+        exit(EXIT_FAILURE);
+    }
+
+    int fifo_1 = open(FIFO_1, O_RDONLY | O_NONBLOCK);
+    int fifo_2 = open(FIFO_2, O_RDONLY | O_NONBLOCK);
+
+    if (fifo_1 < 0 || fifo_2 < 0) {
+        perror("Error al abrir FIFOs");
+        exit(EXIT_FAILURE);
+    }
+
 
     pid_t pid = fork();
 
@@ -107,9 +136,9 @@ int main(int argc, char *argv[]) {
     }
 
     if (pid == 0) {
+        close(fifo_1);
         generar_impares(n, a2, shm_ptr);
 
-        int fifo_2 = open(FIFO_2, O_RDONLY);
         int senal;
         
         read(fifo_2, &senal, sizeof(senal));
@@ -121,9 +150,9 @@ int main(int argc, char *argv[]) {
         return 0;
 
     } else {
+        close(fifo_2);
         generar_pares(n, a1, shm_ptr);
 
-        int fifo_1 = open(FIFO_1, O_RDONLY);
         int senal;
         read(fifo_1, &senal, sizeof(int));
 

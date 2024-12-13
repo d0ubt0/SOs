@@ -20,24 +20,61 @@ int main() {
     // Crear memoria compartida
     shm_unlink(SHM_NAME);
     int shm = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
-    ftruncate(shm, sizeof(int));
+    if (shm == -1) {
+        perror("shm_open");
+        exit(EXIT_FAILURE);
+    }
+    if (ftruncate(shm, sizeof(int)) == -1) {
+        perror("ftruncate");
+        exit(EXIT_FAILURE);
+    }
     int *shm_ptr = mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED, shm, 0);
+    if (shm_ptr == MAP_FAILED) {
+        perror("mmap");
+        exit(EXIT_FAILURE);
+    }
 
-    // Crear semáforo
+    // Crear semáforos
     sem_unlink(SEM_3_NAME);
     sem_3 = sem_open(SEM_3_NAME, O_CREAT, 0666, 1);
+    if (sem_3 == SEM_FAILED) {
+        perror("sem_open sem_3");
+        exit(EXIT_FAILURE);
+    }
+
     sem_unlink(SEM_4_NAME);
     sem_4 = sem_open(SEM_4_NAME, O_CREAT, 0666, 0);
+    if (sem_4 == SEM_FAILED) {
+        perror("sem_open sem_4");
+        exit(EXIT_FAILURE);
+    }
 
-    // Tuberías
-    char fifodir1[] = FIFO_1;
-    char fifodir2[] = FIFO_2;
-    unlink(fifodir1);
-    unlink(fifodir2);
-    mkfifo(fifodir1, 0666);
-    mkfifo(fifodir2, 0666);
-    int fifo_1 = open(fifodir1, O_CREAT | O_WRONLY, 0666);
-    int fifo_2 = open(fifodir2, O_CREAT | O_WRONLY, 0666);
+    //Eliminando tuberías por si acaso
+    unlink(FIFO_1);
+    unlink(FIFO_2);
+    
+    //Creando tuberias y verificando
+    if (mkfifo(FIFO_1, 0666) == -1) {
+        perror("mkfifo FIFO_1");
+        exit(EXIT_FAILURE);
+    }
+    if (mkfifo(FIFO_2, 0666) == -1) {
+        perror("mkfifo FIFO_2");
+        exit(EXIT_FAILURE);
+    }
+
+    //Abriendo tuberias
+    int fifo_1 = open(FIFO_1, O_CREAT | O_WRONLY, 0666);
+    if (fifo_1 == -1) {
+        perror("open FIFO_1");
+        exit(EXIT_FAILURE);
+    }
+
+    int fifo_2 = open(FIFO_2, O_CREAT | O_WRONLY, 0666);
+    if (fifo_2 == -1) {
+        perror("open FIFO_2");
+        exit(EXIT_FAILURE);
+    }
 
     int finalizados = 0;
     int senal = -3;
@@ -66,8 +103,8 @@ int main() {
     sem_close(sem_3);
     sem_unlink(SEM_3_NAME);
     shm_unlink(SHM_NAME);
-    unlink(fifodir1);
-    unlink(fifodir2);
+    unlink(FIFO_1);
+    unlink(FIFO_2);
 
     return 0;
 }
