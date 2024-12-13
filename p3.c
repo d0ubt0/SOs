@@ -85,18 +85,15 @@ int main() {
     while (finalizados < 2) {
         sem_wait(sem_4); 
         int valor = *shm_ptr;
+        printf("%d ", valor);
 
         if (valor == -1) {
-            printf("%d ", valor);
             write(fifo_1, &senal, sizeof(int));
             finalizados++;
         } else if (valor == -2) {
-            printf("%d ", valor);
             write(fifo_2, &senal, sizeof(int));
             finalizados++;
-        } else {
-            printf("%d ", valor);
-        }
+        } 
         sem_post(sem_3);
     }
     printf("\n");

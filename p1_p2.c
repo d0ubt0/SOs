@@ -120,8 +120,9 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    int fifo_1 = open(FIFO_1, O_RDONLY | O_NONBLOCK);
-    int fifo_2 = open(FIFO_2, O_RDONLY | O_NONBLOCK);
+    //Abriendo tuberias creadas por P3
+    int fifo_1 = open(FIFO_1, O_RDONLY);
+    int fifo_2 = open(FIFO_2, O_RDONLY);
 
     if (fifo_1 < 0 || fifo_2 < 0) {
         perror("Error al abrir FIFOs");
