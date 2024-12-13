@@ -18,45 +18,60 @@
 #define FIFO_1 "/tmp/mypipe1"
 #define FIFO_2 "/tmp/mypipe2"
 
-sem_t *sem_1; 
-sem_t *sem_2; 
-sem_t *sem_3; 
+sem_t *sem_1;
+sem_t *sem_2;
+sem_t *sem_3;
 sem_t *sem_4;
 
 void generar_pares(int n, int inicio, int *ptr) {
     for (int i = 0; i < n; i++) {
         sem_wait(sem_1);
         sem_wait(sem_3);
-        *ptr = inicio + (i * 2); 
+        *ptr = inicio + (i * 2);
         sem_post(sem_4);
-        sem_post(sem_2);        
+        sem_post(sem_2);
     }
 
     sem_wait(sem_1);
     sem_wait(sem_3);
-    *ptr = -1; 
-    sem_post(sem_4);         
-    sem_post(sem_2); 
+    *ptr = -1;
+    sem_post(sem_4);
+    sem_post(sem_2);
 }
 
 void generar_impares(int n, int inicio, int *ptr) {
     for (int i = 0; i < n; i++) {
         sem_wait(sem_2);
-        sem_wait(sem_3);    
-        *ptr = inicio + (i * 2); 
+        sem_wait(sem_3);
+        *ptr = inicio + (i * 2);
         sem_post(sem_4);
-        sem_post(sem_1);        
+        sem_post(sem_1);
     }
 
     sem_wait(sem_2);
     sem_wait(sem_3);
-    *ptr = -2; 
-    sem_post(sem_4);        
-    sem_post(sem_1); 
+    *ptr = -2;
+    sem_post(sem_4);
+    sem_post(sem_1);
+}
+
+void limpiar_recursos(int fifo_1, int fifo_2, int shm_fd, int creador_semaforos) {
+    if (fifo_1 >= 0) close(fifo_1);
+    if (fifo_2 >= 0) close(fifo_2);
+    if (shm_fd >= 0) close(shm_fd);
+    
+    if (sem_1) sem_close(sem_1);
+    if (sem_2) sem_close(sem_2);
+    if (sem_3) sem_close(sem_3);
+    if (sem_4) sem_close(sem_4);
+
+    if (creador_semaforos) {
+        sem_unlink(SEM_1_NAME);
+        sem_unlink(SEM_2_NAME);
+    }
 }
 
 int main(int argc, char *argv[]) {
-    // Verificar cantidad de argumentos
     if (argc != 4) {
         perror("Cantidad de argumentos inválida");
         exit(1);
@@ -65,14 +80,12 @@ int main(int argc, char *argv[]) {
     int n = atoi(argv[1]);
     int a1 = atoi(argv[2]);
     int a2 = atoi(argv[3]);
-    
-    // Verificar inputs
+
     if (n < 1 || a1 % 2 != 0 || a2 % 2 == 0) {
         perror("Valores incorrectos");
         exit(1);
     }
 
-    // Verificar si P3 ya fue inicializado por el p3
     sem_3 = sem_open(SEM_3_NAME, 0);
     if (sem_3 == SEM_FAILED) {
         perror("Primero inicie P3");
@@ -85,55 +98,49 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    // Eliminando y luego creando semáforos
     sem_unlink(SEM_1_NAME);
     sem_unlink(SEM_2_NAME);
 
     srand(time(NULL));
     int boolean = rand() % 2;
 
-    if (boolean == 0) {
-        sem_1 = sem_open(SEM_1_NAME, O_CREAT, 0666, 1);  
-        sem_2 = sem_open(SEM_2_NAME, O_CREAT, 0666, 0); 
-    } else {
-        sem_2 = sem_open(SEM_2_NAME, O_CREAT, 0666, 1); 
-        sem_1 = sem_open(SEM_1_NAME, O_CREAT, 0666, 0);
-    }
+    sem_1 = sem_open(SEM_1_NAME, O_CREAT, 0666, boolean == 0 ? 1 : 0);
+    sem_2 = sem_open(SEM_2_NAME, O_CREAT, 0666, boolean == 0 ? 0 : 1);
 
-    //Verificando semaforos creados
     if (sem_1 == SEM_FAILED || sem_2 == SEM_FAILED) {
         perror("Error al crear semáforos SEM_1 o SEM_2");
+        limpiar_recursos(-1, -1, -1, 0);
         exit(EXIT_FAILURE);
     }
 
-    // Abriendo memoria compartida
     int shm_fd = shm_open(SHM_NAME, O_RDWR, 0666);
     if (shm_fd < 0) {
         perror("Error al abrir memoria compartida");
+        limpiar_recursos(-1, -1, -1, 1);
         exit(EXIT_FAILURE);
     }
 
-    //Mapeando puntero
     int *shm_ptr = mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
     if (shm_ptr == MAP_FAILED) {
         perror("Error al mapear memoria compartida");
+        limpiar_recursos(-1, -1, shm_fd, 1);
         exit(EXIT_FAILURE);
     }
 
-    //Abriendo tuberias creadas por P3
     int fifo_1 = open(FIFO_1, O_RDONLY);
     int fifo_2 = open(FIFO_2, O_RDONLY);
 
     if (fifo_1 < 0 || fifo_2 < 0) {
         perror("Error al abrir FIFOs");
+        limpiar_recursos(fifo_1, fifo_2, shm_fd, 1);
         exit(EXIT_FAILURE);
     }
-
 
     pid_t pid = fork();
 
     if (pid < 0) {
         perror("Error al crear el proceso hijo");
+        limpiar_recursos(fifo_1, fifo_2, shm_fd, 1);
         exit(1);
     }
 
@@ -142,12 +149,15 @@ int main(int argc, char *argv[]) {
 
         int senal;
         read(fifo_2, &senal, sizeof(senal));
+
+        limpiar_recursos(fifo_1, fifo_2, shm_fd, 0);
+
         if (senal == -3) {
             printf("-3 P2 termina\n");
+        } else{
+            perror("P2 Fallo diferente a -3");
+            exit(1);
         }
-        
-        close(fifo_2);
-        unlink(FIFO_2);
         return 0;
 
     } else {
@@ -155,18 +165,21 @@ int main(int argc, char *argv[]) {
 
         int senal;
         read(fifo_1, &senal, sizeof(senal));
+
+        limpiar_recursos(fifo_1, fifo_2, shm_fd, 1);
+
         if (senal == -3) {
             printf("-3 P1 termina\n");
         }
-        close(fifo_1);
-        unlink(FIFO_1);
 
         wait(NULL);
 
-        sem_close(sem_1);
-        sem_close(sem_2);
-        sem_unlink(SEM_1_NAME);
-        sem_unlink(SEM_2_NAME);
+        if (senal != -3){
+            perror("P1 Fallo diferente a -3");
+            exit(1);
+        }
+
+    
     }
 
     return 0;
