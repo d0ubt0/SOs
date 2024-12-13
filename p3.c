@@ -79,6 +79,8 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    printf("Esperando por P1 y P2\n");
+
     int finalizados = 0;
     int senal = -3;
      

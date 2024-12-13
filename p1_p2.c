@@ -73,7 +73,7 @@ void limpiar_recursos(int fifo_1, int fifo_2, int shm_fd, int creador_semaforos)
 
 int main(int argc, char *argv[]) {
     if (argc != 4) {
-        perror("Cantidad de argumentos inválida");
+        perror("Uso: p1 N a1 a2");
         exit(1);
     }
 
@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
 
     sem_3 = sem_open(SEM_3_NAME, 0);
     if (sem_3 == SEM_FAILED) {
-        perror("Primero inicie P3");
+        perror("P3 no esta en ejecucion");
         exit(1);
     }
     sem_4 = sem_open(SEM_4_NAME, 0);
@@ -179,7 +179,6 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
 
-    
     }
 
     return 0;
