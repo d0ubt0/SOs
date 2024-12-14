@@ -41,20 +41,20 @@ int main() {
     int shm = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
     if (shm == -1) {
         perror("shm_open");
-        exit(EXIT_FAILURE);
+        return -1;
     }
     //Tamano memoria
     if (ftruncate(shm, sizeof(int)) == -1) {
         perror("ftruncate");
         limpiar_recursos(-1, -1, shm, 0);
-        exit(EXIT_FAILURE);
+        return -1;
     }
     //Puntero memoria
     int *shm_ptr = mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED, shm, 0);
     if (shm_ptr == MAP_FAILED) {
         perror("mmap");
         limpiar_recursos(-1, -1, shm, 0);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     //Borrar semaforos anteriores por si acaso
@@ -66,14 +66,14 @@ int main() {
     if (sem_3 == SEM_FAILED) {
         perror("sem_open sem_3");
         limpiar_recursos(-1, -1, shm, 0);
-        exit(EXIT_FAILURE);
+        return -1;
     }
     //Abrir semaforo  4
     sem_4 = sem_open(SEM_4_NAME, O_CREAT, 0666, 0);
     if (sem_4 == SEM_FAILED) {
         perror("sem_open sem_4");
         limpiar_recursos(-1, -1, shm, 1);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     //Borrar tuberias anteriores por si acaso
@@ -84,31 +84,35 @@ int main() {
     if (mkfifo(FIFO_1, 0666) == -1) {
         perror("mkfifo FIFO_1");
         limpiar_recursos(-1, -1, shm, 1);
-        exit(EXIT_FAILURE);
+        return -1;
     }
     //Crear tuberia 2
     if (mkfifo(FIFO_2, 0666) == -1) {
         perror("mkfifo FIFO_2");
         limpiar_recursos(-1, -1, shm, 1);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
+
     //Abrir tuberia 1 en mood escritura
-    int fifo_1 = open(FIFO_1, O_WRONLY);
+    int fifo_1 = open(FIFO_1, O_RDWR);
     if (fifo_1 == -1) {
         perror("open FIFO_1");
         limpiar_recursos(-1, -1, shm, 1);
-        exit(EXIT_FAILURE);
+        return -1;
     }
     //Abrir tuberia 2 en modo escritura
-    int fifo_2 = open(FIFO_2, O_WRONLY);
+    int fifo_2 = open(FIFO_2, O_RDWR);
     if (fifo_2 == -1) {
         perror("open FIFO_2");
         limpiar_recursos(fifo_1, -1, shm, 1);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
+
+    //Esperando al proceso 1 y 2
     printf("Esperando por P1 y P2\n");
+    fflush(stdout);
 
     int finalizados = 0;
     int senal = -3;
@@ -131,6 +135,7 @@ int main() {
     }
 
     printf("\n");
+    printf("-3 P3 termina\n");
 
     //Borrando recursos creados
     munmap(shm_ptr, sizeof(int));

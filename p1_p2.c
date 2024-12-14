@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
     //Verificar cantida argumentos
     if (argc != 4) {
         perror("Uso: p1 N a1 a2");
-        exit(1);
+        return -1;
     }
 
     int n = atoi(argv[1]);
@@ -85,21 +85,21 @@ int main(int argc, char *argv[]) {
     //Verificas par e impar
     if (n < 1 || a1 % 2 != 0 || a2 % 2 == 0) {
         perror("N>1 , a1: par , a2: impar");
-        exit(1);
+        return -1;
     }
 
     //Abrir semaforo 3 sirve para saber si se ejecuto anteriormente correctamente el P3
     sem_3 = sem_open(SEM_3_NAME, 0);
     if (sem_3 == SEM_FAILED) {
         perror("P3 no esta en ejecucion");
-        exit(1);
+        return -1;
     }
     //Abrir semaforo4
     sem_4 = sem_open(SEM_4_NAME, 0);
     if (sem_4 == SEM_FAILED) {
         perror("Error al abrir semáforo SEM_4");
         sem_close(sem_3);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     //Borrar semaforo 1 y 2
@@ -117,8 +117,8 @@ int main(int argc, char *argv[]) {
     //Verificar creacion
     if (sem_1 == SEM_FAILED || sem_2 == SEM_FAILED) {
         perror("Error al crear semáforos SEM_1 o SEM_2");
-        limpiar_recursos(-1, -1, -1, 0);
-        exit(EXIT_FAILURE);
+        limpiar_recursos(-1, -1, -1, 1);
+        return -1;
     }
 
     //Abriendo memoria compartida
@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
     if (shm_fd < 0) {
         perror("Error al abrir memoria compartida");
         limpiar_recursos(-1, -1, -1, 1);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     //Puntero memoria compartida
@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
     if (shm_ptr == MAP_FAILED) {
         perror("Error al mapear memoria compartida");
         limpiar_recursos(-1, -1, shm_fd, 1);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     //Abriendo tuberia 1 y 2
@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
     if (fifo_1 < 0 || fifo_2 < 0) {
         perror("Error al abrir FIFOs");
         limpiar_recursos(fifo_1, fifo_2, shm_fd, 1);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     //Creacion proceso hijo despues de abrir todos los recursos necesarios
@@ -153,7 +153,7 @@ int main(int argc, char *argv[]) {
     if (pid < 0) {
         perror("Error al crear el proceso hijo");
         limpiar_recursos(fifo_1, fifo_2, shm_fd, 1);
-        exit(1);
+        return -1;
     }
 
     if (pid == 0) {
@@ -167,8 +167,8 @@ int main(int argc, char *argv[]) {
         if (senal == -3) {
             printf("-3 P2 termina\n");
         } else{
-            perror("P2 Fallo diferente a -3");
-            exit(1);
+            perror("P2 Valor recibido diferente a -3");
+            return -1;
         }
         return 0;
 
@@ -186,11 +186,9 @@ int main(int argc, char *argv[]) {
         wait(NULL);
         limpiar_recursos(fifo_1, fifo_2, shm_fd, 1);
         if (senal != -3){
-            perror("P1 Fallo diferente a -3");
-            exit(1);
+            perror("P1 Valor recibido diferente a -3");
+            return -1;
         }
-
     }
-
     return 0;
 }
