@@ -185,6 +185,7 @@ int main(int argc, char *argv[]) {
 
         wait(NULL);
         limpiar_recursos(fifo_1, fifo_2, shm_fd, 1);
+        
         if (senal != -3){
             perror("P1 Valor recibido diferente a -3");
             return -1;

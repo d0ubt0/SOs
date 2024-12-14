@@ -93,7 +93,6 @@ int main() {
         return -1;
     }
 
-
     //Abrir tuberia 1 en mood escritura
     int fifo_1 = open(FIFO_1, O_RDWR);
     if (fifo_1 == -1) {
@@ -108,7 +107,6 @@ int main() {
         limpiar_recursos(fifo_1, -1, shm, 1);
         return -1;
     }
-
 
     //Esperando al proceso 1 y 2
     printf("Esperando por P1 y P2\n");
